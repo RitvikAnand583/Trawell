@@ -122,20 +122,22 @@ authRouter.post("/signup", async (req, res) => {
     console.error("❌ Signup error:", err.message);
     
     // Send appropriate error response
-    if (err.name === 'ValidationError') {
+    if (err.name === 'ValidationError' && err.errors) {
       return res.status(400).json({
-        message: "Validation failed",
-        error: err.message
+        message: err.message || "Validation failed",
+        errors: err.errors
       });
     }
-    
+
     if (err.code === 11000) { // MongoDB duplicate key error
+      // try to extract the duplicated field
+      const dupField = Object.keys(err.keyValue || {})[0] || 'emailId';
       return res.status(409).json({
         message: "Email already exists. Please use a different email or login.",
-        error: "DUPLICATE_EMAIL"
+        errors: { [dupField]: "Email already exists" }
       });
     }
-    
+
     res.status(400).json({
       message: "Signup failed",
       error: err.message
